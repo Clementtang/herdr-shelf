@@ -37,7 +37,7 @@ size_self() {
   ratio="$("$herdr_bin" pane layout --pane "$own" 2>/dev/null \
     | jq -r '.result.layout.splits[-1].ratio // empty' 2>/dev/null)"
   [ -n "$ratio" ] || return 0
-  target="$(awk -v r="${SHELF_WIDTH_RATIO:-0.17}" 'BEGIN { printf "%.4f", 1 - r }')"
+  target="$(awk -v r="${SHELF_WIDTH_RATIO:-0.21}" 'BEGIN { printf "%.4f", 1 - r }')"
   delta="$(awk -v t="$target" -v c="$ratio" 'BEGIN { printf "%.4f", t - c }')"
   direction=right
   case "$delta" in

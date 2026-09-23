@@ -25,6 +25,28 @@ if [ -z "$origin_pane" ] && [ -n "${HERDR_PLUGIN_CONTEXT_JSON:-}" ]; then
   origin_pane="$(printf '%s' "$HERDR_PLUGIN_CONTEXT_JSON" | jq -r '.focused_pane_id // empty' 2>/dev/null)"
 fi
 
+# size_self: shrink this pane to SHELF_WIDTH_RATIO of the tab on first paint.
+# `plugin pane open --placement split` has no width flag, and `pane resize`
+# takes a DELTA against the split's ratio (which is the FIRST child's share),
+# so read the layout and move by the difference. Silent on any failure: a
+# wrongly sized shelf is still a usable shelf.
+size_self() {
+  local ratio target delta direction own
+  own="$("$herdr_bin" pane current 2>/dev/null | jq -r '.result.pane.pane_id // empty' 2>/dev/null)"
+  [ -n "$own" ] || return 0
+  ratio="$("$herdr_bin" pane layout --pane "$own" 2>/dev/null \
+    | jq -r '.result.layout.splits[-1].ratio // empty' 2>/dev/null)"
+  [ -n "$ratio" ] || return 0
+  target="$(awk -v r="${SHELF_WIDTH_RATIO:-0.33}" 'BEGIN { printf "%.4f", 1 - r }')"
+  delta="$(awk -v t="$target" -v c="$ratio" 'BEGIN { printf "%.4f", t - c }')"
+  direction=right
+  case "$delta" in
+    -*) direction=left; delta="${delta#-}" ;;
+  esac
+  awk -v d="$delta" 'BEGIN { exit (d > 0.01) ? 0 : 1 }' || return 0
+  "$herdr_bin" pane resize --pane "$own" --direction "$direction" --amount "$delta" >/dev/null 2>&1
+}
+
 tty_in=/dev/tty
 { : <"$tty_in"; } 2>/dev/null || tty_in=/dev/stdin
 
@@ -33,14 +55,18 @@ DIM=$'\033[2;90m'
 SEL=$'\033[0;1;30;48;5;179m'
 HEAD=$'\033[0;1;38;5;179m'
 CAP=$'\033[0;38;5;245m'
+KEYS=$'\033[0;38;5;236;48;5;179m'
 CLR_HOME=$'\033[H'
 CLR_EOD=$'\033[J'
 CLR_EOL=$'\033[K'
 CURSOR_HIDE=$'\033[?25l'
 CURSOR_SHOW=$'\033[?25h'
 
+MOUSE_ON=$'\033[?1000;1006h'
+MOUSE_OFF=$'\033[?1000;1006l'
+
 cleanup() {
-  printf '%s%s' "$CURSOR_SHOW" "$RESET"
+  printf '%s%s%s' "$MOUSE_OFF" "$CURSOR_SHOW" "$RESET"
 }
 trap cleanup EXIT
 
@@ -144,8 +170,8 @@ draw() {
 
   width="$(cols)"
   height="$(rows)"
-  # 2 header rows + 1 caption footer.
-  list_height=$((height - 3))
+  # 2 header rows + caption row + key-hint row.
+  list_height=$((height - 4))
   [ "$list_height" -lt 1 ] && list_height=1
 
   [ "$selected" -ge "${#paths[@]}" ] && selected=$((${#paths[@]} - 1))
@@ -155,7 +181,7 @@ draw() {
   [ "$top" -lt 0 ] && top=0
 
   frame="${CLR_HOME}${HEAD}$(fit_end "FILES  ${title:-session}" "$width")${RESET}${CLR_EOL}"$'\n'
-  frame+="${DIM}$(fit_end "${#paths[@]} file(s) · enter open · r reload · q close" "$width")${RESET}${CLR_EOL}"$'\n'
+  frame+="${DIM}$(fit_end "${#paths[@]} file(s)" "$width")${RESET}${CLR_EOL}"$'\n'
 
   i="$top"
   while [ "$i" -lt "${#paths[@]}" ] && [ "$i" -lt $((top + list_height)) ]; do
@@ -177,7 +203,10 @@ draw() {
   # line each, so the list height never depends on where the cursor is.
   frame+="${CLR_EOD}"
   frame+=$'\n'"${CAP}$(fit_end "${captions[$selected]:-}" "$width")${RESET}${CLR_EOL}"
-  printf '%s%s' "$CURSOR_HIDE" "$frame"
+  # Key hints live in the pane, pinned to the last row, the way herdr's own
+  # prefix bar states its keys: a standing panel has to explain itself.
+  frame+=$'\n'"${KEYS}$(fit_end " ↑↓/jk move · ⏎ open · click open · r reload · q close " "$width")${RESET}${CLR_EOL}"
+  printf '%s%s%s' "$CURSOR_HIDE" "$MOUSE_ON" "$frame"
 }
 
 open_selected() {
@@ -205,6 +234,7 @@ stamp() {
   stat -f %m "$transcript" 2>/dev/null || stat -c %Y "$transcript" 2>/dev/null
 }
 
+size_self
 load
 draw
 last_stamp="$(stamp)"
@@ -220,14 +250,44 @@ while :; do
       r | R) load; draw; last_stamp="$(stamp)" ;;
       '') open_selected ;;
       $'\e')
-        # Arrow keys arrive as ESC [ A/B; a bare Esc is left alone so it never
-        # closes a standing pane by accident.
+        # Arrow keys arrive as ESC [ A/B, mouse reports as ESC [ < b;x;y M/m
+        # (SGR). A bare Esc is left alone so it never closes a standing pane
+        # by accident.
         IFS= read -rsn1 -t 1 c1 <"$tty_in" 2>/dev/null || continue
         [ "$c1" = "[" ] || continue
         IFS= read -rsn1 -t 1 c2 <"$tty_in" 2>/dev/null || continue
         case "$c2" in
           A) selected=$((selected - 1)); draw ;;
           B) selected=$((selected + 1)); draw ;;
+          '<')
+            seq=""
+            final=""
+            while IFS= read -rsn1 -t 1 ch <"$tty_in" 2>/dev/null; do
+              case "$ch" in
+                M | m) final="$ch"; break ;;
+                *) seq="$seq$ch" ;;
+              esac
+            done
+            [ -n "$final" ] || continue
+            button="${seq%%;*}"
+            rest="${seq#*;}"
+            row="${rest#*;}"
+            case "$button" in
+              64) selected=$((selected - 3)); draw; continue ;;
+              65) selected=$((selected + 3)); draw; continue ;;
+            esac
+            # Press only (M); the matching release (m) would open twice.
+            [ "$final" = "M" ] || continue
+            [ "$button" = "0" ] || continue
+            case "$row" in '' | *[!0-9]*) continue ;; esac
+            # Two header rows sit above the list, and rows are 1-based.
+            hit=$((top + row - 3))
+            if [ "$hit" -ge 0 ] && [ "$hit" -lt "${#paths[@]}" ]; then
+              selected="$hit"
+              draw
+              open_selected
+            fi
+            ;;
         esac
         ;;
     esac

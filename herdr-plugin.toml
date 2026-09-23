@@ -1,0 +1,27 @@
+# herdr-shelf 的 herdr plugin manifest。
+# 本機開發：herdr plugin link ~/herdr-shelf
+#
+# 需要的系統工具：jq、python3（herdr 的 manifest 沒有相依欄位，請自行安裝）。
+# 開檔一律交給 SHELF_OPEN_CMD（預設 ~/.local/bin/semantic-open），
+# 要換程式就改那一支，不改這個 plugin。
+
+id = "clementtang.herdr-shelf"
+name = "Herdr Shelf"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "常駐側欄，列出目前 session 送出的所有檔案，Enter 用自己的路由開啟。"
+platforms = ["macos", "linux"]
+
+# split 而非 overlay：這是常駐面板，overlay 會蓋住 agent 的輸出。
+# pane 的 cwd 是使用者的工作目錄，腳本路徑一定要用 $HERDR_PLUGIN_ROOT。
+[[panes]]
+id = "shelf"
+title = "Files"
+placement = "split"
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/shelf.sh\""]
+
+[[actions]]
+id = "shelf"
+title = "Shelf: 開啟檔案側欄"
+contexts = ["workspace"]
+command = ["bash", "-c", "exec \"$HERDR_BIN_PATH\" plugin pane open --plugin \"$HERDR_PLUGIN_ID\" --entrypoint shelf --placement split --direction right --focus"]

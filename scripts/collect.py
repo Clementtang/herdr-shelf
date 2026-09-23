@@ -79,8 +79,9 @@ def resolve_transcript(directory, title):
 
 def collect(transcript):
     """Return [(path, caption)], newest first, deduped by path."""
+    # dicts keep insertion order, so popping before re-inserting moves a
+    # re-sent path to the newest position.
     found = {}
-    order = []
     with open(transcript, encoding="utf-8", errors="replace") as handle:
         for line in handle:
             try:
@@ -102,10 +103,9 @@ def collect(transcript):
                 for path in params.get("files") or []:
                     if not isinstance(path, str):
                         continue
-                    if path not in found:
-                        order.append(path)
+                    found.pop(path, None)
                     found[path] = caption
-    return [(path, found[path]) for path in reversed(order)]
+    return list(reversed(found.items()))
 
 
 def main():

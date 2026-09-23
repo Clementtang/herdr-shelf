@@ -52,6 +52,14 @@ command = "clementtang.herdr-shelf.shelf"
 
 開檔會先脫離 pane 的程序群組再執行（double fork 加 setsid）。herdr 在 pane 關閉時會停掉整個程序群組，不這樣做的話 Quick Look 會跟著被殺。
 
+## 測試
+
+```
+bats tests/
+```
+
+`collect.bats` 用假的 HOME 與 .jsonl fixture 驗證檔案抽取、去重與 session 選擇；`shelf.bats` 用假的 herdr 與開檔指令無頭驅動側欄，驗證鍵盤與滑鼠點擊開到正確的檔案。`SHELF_TTY=/dev/stdin` 讓按鍵改從 stdin 送入，否則在終端機裡跑時側欄會等你的鍵盤。
+
 ## 已知限制
 
 - 綁在 Claude Code 的逐字檔格式上（`SendUserFile` 的 `tool_use` 紀錄與 `custom-title`）。Claude Code 改格式就要跟著修。

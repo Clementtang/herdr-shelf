@@ -47,7 +47,9 @@ size_self() {
   "$herdr_bin" pane resize --pane "$own" --direction "$direction" --amount "$delta" >/dev/null 2>&1
 }
 
-tty_in=/dev/tty
+# SHELF_TTY lets tests feed keys through stdin: under a real terminal
+# /dev/tty opens fine and the script would wait on the tester's keyboard.
+tty_in="${SHELF_TTY:-/dev/tty}"
 { : <"$tty_in"; } 2>/dev/null || tty_in=/dev/stdin
 
 RESET=$'\033[0m'

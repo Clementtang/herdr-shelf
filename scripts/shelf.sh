@@ -37,7 +37,7 @@ size_self() {
   ratio="$("$herdr_bin" pane layout --pane "$own" 2>/dev/null \
     | jq -r '.result.layout.splits[-1].ratio // empty' 2>/dev/null)"
   [ -n "$ratio" ] || return 0
-  target="$(awk -v r="${SHELF_WIDTH_RATIO:-0.33}" 'BEGIN { printf "%.4f", 1 - r }')"
+  target="$(awk -v r="${SHELF_WIDTH_RATIO:-0.17}" 'BEGIN { printf "%.4f", 1 - r }')"
   delta="$(awk -v t="$target" -v c="$ratio" 'BEGIN { printf "%.4f", t - c }')"
   direction=right
   case "$delta" in
@@ -56,6 +56,7 @@ SEL=$'\033[0;1;30;48;5;179m'
 HEAD=$'\033[0;1;38;5;179m'
 CAP=$'\033[0;38;5;245m'
 KEYS=$'\033[0;38;5;236;48;5;179m'
+SELDIM=$'\033[0;38;5;179m'
 CLR_HOME=$'\033[H'
 CLR_EOD=$'\033[J'
 CLR_EOL=$'\033[K'
@@ -166,12 +167,13 @@ selected=0
 top=0
 
 draw() {
-  local width height list_height i frame line name
+  local width height list_height i frame line name parent
 
   width="$(cols)"
   height="$(rows)"
-  # 2 header rows + caption row + key-hint row.
-  list_height=$((height - 4))
+  # 2 header rows + caption row + key-hint row, and every entry is a pair of
+  # rows (name, then its parent directory), so the visible count is halved.
+  list_height=$(((height - 4) / 2))
   [ "$list_height" -lt 1 ] && list_height=1
 
   [ "$selected" -ge "${#paths[@]}" ] && selected=$((${#paths[@]} - 1))
@@ -186,11 +188,18 @@ draw() {
   i="$top"
   while [ "$i" -lt "${#paths[@]}" ] && [ "$i" -lt $((top + list_height)) ]; do
     name="${paths[$i]##*/}"
+    # Parent directory only: the full path never fits a sidebar this narrow,
+    # and the leaf directory is what distinguishes one day's clips from
+    # another's.
+    parent="${paths[$i]%/*}"
+    parent="${parent##*/}"
     line=" $(icon "${paths[$i]}") $(fit "$name" $((width - 4)))"
     if [ "$i" -eq "$selected" ]; then
       frame+="${SEL}${line}${RESET}${CLR_EOL}"$'\n'
+      frame+="${SELDIM}$(fit "   $parent" "$width")${RESET}${CLR_EOL}"$'\n'
     else
       frame+="${line}${CLR_EOL}"$'\n'
+      frame+="${DIM}$(fit "   $parent" "$width")${RESET}${CLR_EOL}"$'\n'
     fi
     i=$((i + 1))
   done
@@ -280,8 +289,9 @@ while :; do
             [ "$final" = "M" ] || continue
             [ "$button" = "0" ] || continue
             case "$row" in '' | *[!0-9]*) continue ;; esac
-            # Two header rows sit above the list, and rows are 1-based.
-            hit=$((top + row - 3))
+            # Two header rows sit above the list, rows are 1-based, and each
+            # entry owns two rows, so either of them selects the same file.
+            hit=$((top + (row - 3) / 2))
             if [ "$hit" -ge 0 ] && [ "$hit" -lt "${#paths[@]}" ]; then
               selected="$hit"
               draw

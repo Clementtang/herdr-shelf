@@ -32,6 +32,8 @@ command = "clementtang.herdr-shelf.shelf"
 | `r`               | 重新載入                 |
 | `q`               | 關閉側欄                 |
 
+每個項目佔兩行：檔名，底下一行是它的上一層資料夾（例如錄音日期）。點兩行的任何一行都是開同一個檔案。
+
 底部會顯示選取檔案的說明文字，也就是 Claude 送檔時附的 caption。
 
 ## 它怎麼知道要看哪個 session

@@ -14,11 +14,19 @@ herdr-shelf 讀的是 session 的逐字檔，不是畫面，所以這個 session
 
 ## 安裝
 
-需要 `jq` 與 `python3`。
+需要 `jq` 與 `python3`。Linux 另需 `xdg-open`（Debian／Ubuntu 的 `xdg-utils` 套件），沒設定 `SHELF_OPEN_CMD` 時用它開檔。
 
 ```sh
 herdr plugin install Clementtang/herdr-shelf
 ```
+
+在腳本、CI 等非互動環境（stdin 不是終端機）安裝時，herdr 沒辦法問確認，會直接拒絕（連 `yes |` 也不行），必須加上 `--yes`，而且要放在 repo 後面：
+
+```sh
+herdr plugin install Clementtang/herdr-shelf --yes
+```
+
+herdr 0.9.1 中把 `-y` 放在 repo 前面（`herdr plugin install -y Clementtang/herdr-shelf`）只會印出用法，不會安裝。
 
 在 `~/.config/herdr/config.toml` 綁快捷鍵：
 
@@ -55,7 +63,7 @@ command = "clementtang.herdr-shelf.shelf"
 
 ## 開檔
 
-側欄自己不決定用哪個程式開檔，一律交給 `SHELF_OPEN_CMD`（預設 `~/.local/bin/semantic-open`，不存在時退回 macOS 的 `open`）。要換程式就改那支指令，這樣終端機裡 Cmd+click 和側欄的行為永遠一致。
+側欄自己不決定用哪個程式開檔，一律交給 `SHELF_OPEN_CMD`（預設 `~/.local/bin/semantic-open`，不存在時 macOS 退回 `open`，Linux 退回 `xdg-open`）。Linux 刻意不用 `open`：精簡的 Debian 上 `open` 可能是 `openvt`。要換程式就改那支指令，這樣終端機裡 Cmd+click 和側欄的行為永遠一致。
 
 開檔程序會先脫離 pane 的程序群組再執行（double fork 加 setsid）。herdr 在 pane 關閉時會停掉整個程序群組，不這樣做的話 Quick Look 會跟著被關掉。
 
@@ -73,7 +81,7 @@ command = "clementtang.herdr-shelf.shelf"
 
 | 環境變數             | 預設                         | 說明                                            |
 | -------------------- | ---------------------------- | ----------------------------------------------- |
-| `SHELF_OPEN_CMD`     | `~/.local/bin/semantic-open` | 開檔指令，收到一個絕對路徑。不存在時退回 `open` |
+| `SHELF_OPEN_CMD`     | `~/.local/bin/semantic-open` | 開檔指令，收到一個絕對路徑。不存在時退回 `open`（macOS）或 `xdg-open`（Linux） |
 | `SHELF_POLL_SECONDS` | `2`                          | 幾秒檢查一次逐字檔有沒有更新                    |
 | `SHELF_WIDTH_RATIO`  | `0.21`                       | 側欄佔整個 tab 的寬度比例                       |
 | `SHELF_ORIGIN_PANE`  | 由 herdr 提供                | 要跟隨的 pane，測試時可手動指定                 |
@@ -87,6 +95,9 @@ bats tests/
 - `collect.bats`：用假的 HOME 與 .jsonl fixture 驗證檔案抽取、去重與 session 選擇。
 - `shelf.bats`：用假的 herdr 與開檔指令無頭驅動側欄，驗證鍵盤與滑鼠點擊開到正確的檔案。
 - `toggle.bats`：驗證 `prefix+f` 在同一個 tab 已有側欄時會關閉，而不是再開一個。
+- `portable.bats`：驗證 `scripts/portable.sh` 在 macOS（BSD `stat`、`open`）與 Linux（GNU `stat`、`xdg-open`）給出相同結果，另一邊的工具以 PATH 裡的假指令代替。
+
+macOS 與 Linux 都能跑整套測試。
 
 `SHELF_TTY=/dev/stdin` 讓按鍵改從 stdin 送入，否則在終端機裡跑時側欄會等你的鍵盤。
 

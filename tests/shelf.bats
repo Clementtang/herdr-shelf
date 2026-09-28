@@ -62,6 +62,11 @@ opened() {
   [[ "$output" == *"speaker one"* ]]
 }
 
+@test "should put the close key first in the hint row when the pane is narrow" {
+  run_keys 'q'
+  [[ "$output" == *" q close"* ]]
+}
+
 @test "should open the newest file when Enter is pressed without moving" {
   run_keys '\nq'
   [ "$(opened)" = "$CLIP_DIR/SPEAKER_01.m4a" ]

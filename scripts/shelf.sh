@@ -168,6 +168,12 @@ fit_end() {
 selected=0
 top=0
 
+# The pane changes width after the first paint: size_self's resize lands
+# late, and opening any other split beside the shelf narrows it. A frame
+# drawn for the old width wraps, so redraw on SIGWINCH.
+resized=0
+trap 'resized=1' WINCH
+
 draw() {
   local width height list_height i frame line name parent
 
@@ -216,7 +222,10 @@ draw() {
   frame+=$'\n'"${CAP}$(fit_end "${captions[$selected]:-}" "$width")${RESET}${CLR_EOL}"
   # Key hints live in the pane, pinned to the last row, the way herdr's own
   # prefix bar states its keys: a standing panel has to explain itself.
-  frame+=$'\n'"${KEYS}$(fit_end " ↑↓/jk move · ⏎ open · click open · r reload · q close " "$width")${RESET}${CLR_EOL}"
+  # How to close comes first because the tail is what a narrow pane cuts
+  # off, and plain ASCII because arrows and dots are ambiguous-width glyphs
+  # that some terminals draw two columns wide, wrapping the row.
+  frame+=$'\n'"${KEYS}$(fit_end " q close  enter open  j/k move  r reload " "$width")${RESET}${CLR_EOL}"
   printf '%s%s%s' "$CURSOR_HIDE" "$MOUSE_ON" "$frame"
 }
 
@@ -304,6 +313,15 @@ while :; do
         ;;
     esac
     continue
+  fi
+  # bash 3.2 runs the WINCH trap without cutting `read -t` short, so the
+  # redraw waits for the poll timeout (SHELF_POLL_SECONDS at most).
+  if [ "$resized" = 1 ]; then
+    resized=0
+    # Full clear: rows the terminal reflowed at the old width sit outside
+    # what draw() overwrites.
+    printf '\033[2J'
+    draw
   fi
   current="$(stamp)"
   if [ "$current" != "$last_stamp" ]; then

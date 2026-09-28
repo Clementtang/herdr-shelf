@@ -22,6 +22,6 @@ command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/shelf.sh\""]
 
 [[actions]]
 id = "shelf"
-title = "Shelf: 開啟檔案側欄"
+title = "Shelf: 開關檔案側欄"
 contexts = ["workspace"]
-command = ["bash", "-c", "exec \"$HERDR_BIN_PATH\" plugin pane open --plugin \"$HERDR_PLUGIN_ID\" --entrypoint shelf --placement split --direction right --focus"]
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/toggle.sh\""]

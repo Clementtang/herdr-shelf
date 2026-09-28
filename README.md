@@ -31,6 +31,7 @@ command = "clementtang.herdr-shelf.shelf"
 | `Enter`           | 用 `SHELF_OPEN_CMD` 開啟 |
 | `r`               | 重新載入                 |
 | `q`               | 關閉側欄                 |
+| `prefix+f`        | 開關側欄（再按一次關閉） |
 
 每個項目佔兩行：檔名，底下一行是它的上一層資料夾（例如錄音日期）。點兩行的任何一行都是開同一個檔案。
 

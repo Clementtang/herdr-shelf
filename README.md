@@ -3,12 +3,12 @@
 [herdr](https://herdr.dev) 的常駐檔案側欄：列出旁邊那個 Claude Code session 送給你的每一個檔案，最新的在最上面，點一下就用你自己的開檔路由打開。
 
 <p align="center">
-  <img src="assets/shelf-in-herdr.svg" alt="herdr-shelf 在 herdr 內的示意圖：左邊是 Claude Code session，右邊的側欄列出它送出的六段講者音檔，點一下其中一段，Quick Look 開始播放" width="920">
+  <img src="assets/shelf-demo.svg" alt="動畫：Agent 送出的圖表、報告、錄影埋在對話裡，安裝 herdr-shelf 後按 prefix+f，檔案全部列在側欄，點一下用 Quick Look 開啟" width="920">
 </p>
 
 ## 為什麼
 
-Claude Code 用 `SendUserFile` 送檔時，終端機裡只留下一行 `› [file] ~/....m4a`。要聽要看得自己去 Finder 找，對話一長，那一行就捲出畫面了。
+Claude Code 用 `SendUserFile` 送檔時，終端機裡只留下一行 `› [file] ~/…/report.pdf`。圖表、報告、錄音、錄影都一樣，要看得自己去 Finder 找，對話一長，那一行就捲出畫面了。
 
 herdr-shelf 讀的是 session 的逐字檔，不是畫面，所以這個 session 送過的檔案全都在，不會因為捲動而消失。清單只收真正送到你面前的檔案，Claude 讀過或寫過的檔案不算。
 
@@ -36,6 +36,10 @@ command = "clementtang.herdr-shelf.shelf"
 ## 操作
 
 在 Claude Code 的 pane 按 `prefix+f` 開啟側欄，再按一次關閉。
+
+<p align="center">
+  <img src="assets/shelf-in-herdr.svg" alt="herdr-shelf 在 herdr 內的示意圖：左邊是 Claude Code session，右邊的側欄列出它送出的六段講者音檔，點一下其中一段，Quick Look 開始播放" width="920">
+</p>
 
 | 按鍵              | 動作                     |
 | ----------------- | ------------------------ |
@@ -85,6 +89,8 @@ bats tests/
 - `toggle.bats`：驗證 `prefix+f` 在同一個 tab 已有側欄時會關閉，而不是再開一個。
 
 `SHELF_TTY=/dev/stdin` 讓按鍵改從 stdin 送入，否則在終端機裡跑時側欄會等你的鍵盤。
+
+開頭的動畫由 `tools/make-demo.py` 產生，改完執行 `python3 tools/make-demo.py`。`node tools/render-video.js --at 3,12` 可以截出指定秒數的畫面檢查，`--mp4 <路徑>` 則用 Chrome 與 ffmpeg 輸出影片。
 
 ## 已知限制
 

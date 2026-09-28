@@ -39,7 +39,13 @@ command = "clementtang.herdr-shelf.shelf"
 
 ## 它怎麼知道要看哪個 session
 
-一個專案資料夾底下放著這個 repo 跑過的每一個 session，而且常常好幾個同時開著，所以「取最新的逐字檔」會抓錯。側欄改成綁定開啟時所在的那個 pane：讀它的 pane 標題（就是 `/rename` 的名字），去比對逐字檔裡最後一筆 `customTitle`。session 沒有命名時，退回取最近寫入的那一份。
+一個專案資料夾底下放著這個 repo 跑過的每一個 session，而且常常好幾個同時開著，所以「取最新的逐字檔」會抓錯。側欄綁定開啟時所在的那個 pane，依序用三種方式找它的逐字檔：
+
+1. herdr 回報的 Claude session id（`pane list` 的 `agent_session.value`），直接對應 `<session id>.jsonl`。pane 的工作目錄換過時，會到其他專案資料夾找同名檔案。
+2. 取不到 id 時（舊版 herdr 或 herdr 還沒辨識出來），用 pane 標題（`/rename` 的名字）比對逐字檔裡最後一筆 `customTitle`。
+3. 都對不上時，取最近寫入的那一份。
+
+`/clear` 或 `/resume` 讓 pane 換到新的 session id 時，側欄會在下一次輪詢時自動切過去。
 
 清單只收 `SendUserFile` 送出的檔案，也就是真的被推到你面前的那些。
 
@@ -64,5 +70,5 @@ bats tests/
 ## 已知限制
 
 - 綁在 Claude Code 的逐字檔格式上（`SendUserFile` 的 `tool_use` 紀錄與 `custom-title`）。Claude Code 改格式就要跟著修。
-- 以 `/rename` 的名字辨識 session。兩個 session 取同一個名字時會認錯。
+- 取不到 session id 而退回標題比對時，兩個 session 取同一個名字會認錯。
 - 全程使用 macOS 內建的 bash 3.2，因為 herdr 就是用它執行 plugin。

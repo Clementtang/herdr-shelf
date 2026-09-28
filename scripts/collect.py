@@ -12,9 +12,12 @@ across turns keeps its newest position, so re-sending a clip moves it to the
 top instead of adding a second row.
 """
 
+import glob
 import json
 import os
 import sys
+
+PROJECTS_ROOT = os.path.expanduser("~/.claude/projects")
 
 
 def project_dir(cwd):
@@ -22,7 +25,7 @@ def project_dir(cwd):
     # absolute path becomes a dash, so /Users/x/91app-map is stored as
     # -Users-x-91app-map.
     mangled = "".join(c if c.isalnum() else "-" for c in os.path.abspath(cwd))
-    return os.path.join(os.path.expanduser("~/.claude/projects"), mangled)
+    return os.path.join(PROJECTS_ROOT, mangled)
 
 
 def transcripts_by_recency(directory):
@@ -61,14 +64,38 @@ def custom_title(transcript):
     return title
 
 
-def resolve_transcript(directory, title):
-    """The transcript for `title`, else the most recently written one.
+def transcript_for_session(directory, session_id):
+    """The transcript named by herdr's session id, or None.
 
-    One project directory holds every session ever run in that repo, and the
-    user keeps several live at once, so recency alone picks the wrong pane's
-    session. herdr's pane title carries the session's /rename name, which is
-    the only identifier both sides share.
+    Looked up under the pane's project directory first, then under every
+    project: the directory is named after where claude started, and the
+    pane's cwd can have moved since.
     """
+    # The id becomes a filename; anything but a plain UUID-like token would
+    # let a crafted value step outside the projects directory.
+    if not session_id or not all(c.isalnum() or c == "-" for c in session_id):
+        return None
+    name = session_id + ".jsonl"
+    direct = os.path.join(directory, name)
+    if os.path.isfile(direct):
+        return direct
+    matches = glob.glob(os.path.join(PROJECTS_ROOT, "*", name))
+    return matches[0] if matches else None
+
+
+def resolve_transcript(directory, title, session_id=""):
+    """The transcript for this pane's session.
+
+    herdr reports the Claude session id of each pane, which names the
+    transcript exactly. Without it (older herdr, or a pane herdr has not
+    identified) the pane title is matched against the /rename name, and
+    failing that the most recently written transcript is used: one project
+    directory holds every session ever run in that repo and several are
+    usually live, so recency alone often picks another pane's session.
+    """
+    exact = transcript_for_session(directory, session_id)
+    if exact:
+        return exact
     candidates = transcripts_by_recency(directory)
     if title:
         for transcript in candidates[:40]:
@@ -111,7 +138,8 @@ def collect(transcript):
 def main():
     cwd = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     title = sys.argv[2] if len(sys.argv) > 2 else ""
-    transcript = resolve_transcript(project_dir(cwd), title)
+    session_id = sys.argv[3] if len(sys.argv) > 3 else ""
+    transcript = resolve_transcript(project_dir(cwd), title, session_id)
     if not transcript or not os.path.exists(transcript):
         return 1
     # The path is printed so the caller can watch the transcript's mtime

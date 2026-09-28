@@ -4,8 +4,8 @@
 #
 # Bound to ONE pane, not to the project: a project directory holds every
 # session ever run there and several are usually live at once, so the shelf
-# follows the origin pane's title (the session's /rename name) and matches it
-# against the transcript's customTitle. See scripts/collect.py.
+# follows the origin pane's Claude session id as herdr reports it, falling
+# back to its title (the /rename name). See scripts/collect.py.
 #
 # bash 3.2 (macOS /bin/bash, which herdr runs `bash` as) throughout: no
 # associative arrays, no `${var,,}`, and `read -t` takes whole seconds only.
@@ -91,11 +91,13 @@ paths=()
 captions=()
 transcript=""
 title=""
+session_id=""
 cwd=""
 
 load() {
   local line first=1
   title="$(session_title)"
+  session_id="$(pane_field "$origin_pane" '.agent_session.value')"
   cwd="$(pane_field "$origin_pane" '.cwd')"
   [ -n "$cwd" ] || cwd="$PWD"
   paths=()
@@ -111,7 +113,7 @@ load() {
     [ -n "$left" ] || continue
     paths[${#paths[@]}]="$left"
     captions[${#captions[@]}]="$right"
-  done < <(python3 "$script_dir/collect.py" "$cwd" "$title" 2>/dev/null)
+  done < <(python3 "$script_dir/collect.py" "$cwd" "$title" "$session_id" 2>/dev/null)
 }
 
 # icon <path>: one glyph per kind, so the list scans as fast as a Finder
@@ -324,10 +326,19 @@ while :; do
     draw
   fi
   current="$(stamp)"
+  # /clear and /resume swap the pane to another session id, whose transcript
+  # the mtime watch above knows nothing about. An empty id (Claude exited,
+  # pane gone) keeps the last list rather than reloading every poll.
+  if [ "$current" = "$last_stamp" ]; then
+    live_session="$(pane_field "$origin_pane" '.agent_session.value')"
+    if [ -n "$live_session" ] && [ "$live_session" != "$session_id" ]; then
+      current=""
+    fi
+  fi
   if [ "$current" != "$last_stamp" ]; then
     load
     draw
-    last_stamp="$current"
+    last_stamp="$(stamp)"
   fi
 done
 

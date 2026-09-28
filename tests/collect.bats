@@ -102,3 +102,41 @@ setup() {
   [ "$status" -eq 0 ]
   [ "${lines[1]}" = "/clips/a.m4a	col1 col2" ]
 }
+
+@test "should pick the transcript named by the session id even when the title matches another" {
+  { title_record shared-name; send_record "" /clips/by-id.m4a; } >"$PROJECT_DIR/aaaa-1111.jsonl"
+  { title_record shared-name; send_record "" /clips/by-title.m4a; } >"$PROJECT_DIR/bbbb-2222.jsonl"
+  age "$PROJECT_DIR/aaaa-1111.jsonl" 600
+
+  run python3 "$COLLECT" "$WORK_DIR" shared-name aaaa-1111
+  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/aaaa-1111.jsonl" ]
+  [ "${lines[1]}" = "/clips/by-id.m4a	" ]
+}
+
+@test "should find the session transcript under another project when the pane cwd has moved" {
+  other="$HOME/.claude/projects/-somewhere-else"
+  mkdir -p "$other"
+  send_record "" /clips/moved.m4a >"$other/cccc-3333.jsonl"
+  send_record "" /clips/local.m4a >"$PROJECT_DIR/dddd-4444.jsonl"
+
+  run python3 "$COLLECT" "$WORK_DIR" "" cccc-3333
+  [ "${lines[0]}" = "#transcript	$other/cccc-3333.jsonl" ]
+}
+
+@test "should fall back to title matching when the session id has no transcript" {
+  { title_record wanted; send_record "" /clips/mine.m4a; } >"$PROJECT_DIR/older.jsonl"
+  send_record "" /clips/theirs.m4a >"$PROJECT_DIR/newer.jsonl"
+  age "$PROJECT_DIR/older.jsonl" 600
+
+  run python3 "$COLLECT" "$WORK_DIR" wanted eeee-5555
+  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/older.jsonl" ]
+}
+
+@test "should ignore a session id carrying path characters when resolving" {
+  mkdir -p "$HOME/.claude/escape"
+  send_record "" /clips/outside.m4a >"$HOME/.claude/escape/x.jsonl"
+  send_record "" /clips/inside.m4a >"$PROJECT_DIR/ffff-6666.jsonl"
+
+  run python3 "$COLLECT" "$WORK_DIR" "" "../../escape/x"
+  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/ffff-6666.jsonl" ]
+}

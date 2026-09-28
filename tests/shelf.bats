@@ -15,6 +15,8 @@ setup() {
     send_record "speaker one" "$CLIP_DIR/SPEAKER_01.m4a"
   } >"$PROJECT_DIR/s1.jsonl"
 
+  SESSION_FILE="$BATS_TEST_TMPDIR/session-id"
+  : >"$SESSION_FILE"
   STUB_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$STUB_DIR"
   OPEN_LOG="$BATS_TEST_TMPDIR/opened.log"
@@ -22,7 +24,7 @@ setup() {
   cat >"$STUB_DIR/herdr" <<STUB
 #!/bin/bash
 if [ "\$1 \$2" = "pane list" ]; then
-  printf '{"result":{"panes":[{"pane_id":"w1:p1","terminal_title":"\xe2\x9c\xb3 my-session","cwd":"%s"}]}}' "$WORK_DIR"
+  printf '{"result":{"panes":[{"pane_id":"w1:p1","terminal_title":"\xe2\x9c\xb3 my-session","cwd":"%s","agent_session":{"value":"%s"}}]}}' "$WORK_DIR" "\$(cat "$SESSION_FILE" 2>/dev/null)"
 fi
 STUB
   printf '#!/bin/bash\nprintf "%%s\\n" "$1" >>"%s"\n' "$OPEN_LOG" >"$STUB_DIR/open"
@@ -103,4 +105,26 @@ opened() {
   run_keys '\nq'
   sleep 0.5
   [ ! -s "$OPEN_LOG" ]
+}
+
+@test "should list the pane's own session when another session shares its title" {
+  { title_record my-session; send_record "" "$CLIP_DIR/SPEAKER_00.m4a"; } >"$PROJECT_DIR/1234-abcd.jsonl"
+  age "$PROJECT_DIR/1234-abcd.jsonl" 600
+  printf '1234-abcd' >"$SESSION_FILE"
+
+  run_keys 'q'
+  [[ "$output" == *"1 file(s)"* ]]
+}
+
+@test "should switch to the new transcript when the pane's session id changes" {
+  { title_record other; send_record "" "$CLIP_DIR/SPEAKER_00.m4a"; } >"$PROJECT_DIR/5678-efgh.jsonl"
+  age "$PROJECT_DIR/5678-efgh.jsonl" 600
+  age "$PROJECT_DIR/s1.jsonl" 900
+  printf '5678-efgh' >"$SESSION_FILE"
+
+  # s1 (two files) takes over mid-run, the way /clear hands the pane a new id.
+  run bash -c '(sleep 1; printf s1 >"$1"; sleep 3; printf q) \
+    | SHELF_POLL_SECONDS=1 bash "$2" | sed "s/$(printf "\033")\[[0-9;?]*[A-Za-z]//g"' _ "$SESSION_FILE" "$SHELF"
+  [[ "$output" == *"1 file(s)"* ]]
+  [[ "$output" == *"2 file(s)"* ]]
 }

@@ -89,6 +89,32 @@ session_title() {
   printf '%s' "$raw" | sed 's/^[^A-Za-z0-9_~./-]*//; s/[[:space:]]*$//'
 }
 
+# napped_field <pane-id> <column>: one column of the pane's herdr-nap record,
+# empty without one. herdr-nap documents napped.tsv as its interface for other
+# plugins (pane_id, kind, name, session_id, cwd, argv; "-" for empty). Only
+# claude rows count: a grok session id names no Claude transcript.
+napped_field() {
+  local file="${XDG_STATE_HOME:-$HOME/.local/state}/herdr-nap/napped.tsv"
+  [ -r "$file" ] || return 0
+  awk -F'\t' -v pane="$1" -v col="$2" \
+    '$1 == pane && $2 == "claude" && $col != "-" { print $col; exit }' "$file"
+}
+
+# resolve_session: sets session_id and title for the origin pane. herdr
+# reports the id while claude runs. A pane herdr-nap put to sleep has no
+# agent, so its record supplies the id; records can outlive the nap, which
+# is why they only count while herdr sees no agent.
+resolve_session() {
+  local pane_json
+  pane_json="$("$herdr_bin" pane list 2>/dev/null \
+    | jq -c --arg id "$origin_pane" '.result.panes[] | select(.pane_id == $id)' 2>/dev/null)"
+  session_id="$(printf '%s' "$pane_json" | jq -r '.agent_session.value // empty' 2>/dev/null)"
+  title="$(session_title)"
+  [ -z "$session_id" ] || return 0
+  [ -z "$(printf '%s' "$pane_json" | jq -r '.agent // empty' 2>/dev/null)" ] || return 0
+  session_id="$(napped_field "$origin_pane" 4)"
+}
+
 paths=()
 captions=()
 transcript=""
@@ -98,8 +124,7 @@ cwd=""
 
 load() {
   local line first=1
-  title="$(session_title)"
-  session_id="$(pane_field "$origin_pane" '.agent_session.value')"
+  resolve_session
   cwd="$(pane_field "$origin_pane" '.cwd')"
   [ -n "$cwd" ] || cwd="$PWD"
   paths=()
@@ -109,6 +134,12 @@ load() {
     if [ "$first" = 1 ] && [ "$left" = "#transcript" ]; then
       transcript="$right"
       first=0
+      continue
+    fi
+    # The transcript's own /rename name beats the pane title, which other
+    # tools decorate (herdr-nap shows "[nap] <name>").
+    if [ "$left" = "#title" ]; then
+      title="$right"
       continue
     fi
     first=0

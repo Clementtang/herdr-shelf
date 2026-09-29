@@ -69,12 +69,13 @@ command = "clementtang.herdr-shelf.shelf"
 
 ## 它怎麼知道要看哪個 session
 
-一個專案資料夾底下放著這個 repo 跑過的每一個 session，而且常常好幾個同時開著，所以「取最新的逐字檔」會抓錯。側欄綁定開啟時所在的那個 pane，依序用兩種方式找它的逐字檔：
+一個專案資料夾底下放著這個 repo 跑過的每一個 session，而且常常好幾個同時開著，所以「取最新的逐字檔」會抓錯。側欄綁定開啟時所在的那個 pane，依序用三種方式找它的逐字檔：
 
 1. herdr 回報的 Claude session id（`pane list` 的 `agent_session.value`），直接對應 `<session id>.jsonl`。pane 的工作目錄換過時，會到其他專案資料夾找同名檔案。
-2. 取不到 id 時（舊版 herdr 或 herdr 還沒辨識出來），用 pane 標題（`/rename` 的名字）比對逐字檔裡最後一筆 `customTitle`。
+2. pane 被 [herdr-nap](https://github.com/Clementtang/herdr-nap) 休眠時，herdr 不再回報 session id，改讀 herdr-nap 公開的 `napped.tsv` 取得原本的 session id。只在 herdr 回報這個 pane 沒有 agent 時採用，也只採用 claude 的紀錄。沒裝 herdr-nap 就跳過這一步。
+3. 以上都取不到時（舊版 herdr 或 herdr 還沒辨識出來），用 pane 標題（`/rename` 的名字）比對逐字檔裡最後一筆 `customTitle`。
 
-兩種都對不上時，側欄顯示 `no session found for this pane`，不會拿最近寫入的逐字檔來猜：同一個專案常有好幾個 session 同時開著，猜錯會把別的 session 的檔案當成這個 pane 的。
+都對不上時，側欄顯示 `no session found for this pane`，不會拿最近寫入的逐字檔來猜：同一個專案常有好幾個 session 同時開著，猜錯會把別的 session 的檔案當成這個 pane 的。
 
 之後切到別的 pane，側欄仍然顯示原本那個 session。`/clear` 或 `/resume` 讓 pane 換到新的 session id 時，側欄會在下一次輪詢時自動切過去。
 

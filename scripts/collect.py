@@ -147,6 +147,9 @@ def main():
     # The path is printed so the caller can watch the transcript's mtime
     # without repeating the newest-file search on every poll.
     sys.stdout.write("#transcript\t%s\n" % transcript)
+    name = custom_title(transcript)
+    if name:
+        sys.stdout.write("#title\t%s\n" % name.replace("\t", " "))
     for path, caption in collect(transcript):
         sys.stdout.write("%s\t%s\n" % (path, caption.replace("\t", " ")))
     return 0

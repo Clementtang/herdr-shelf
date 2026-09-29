@@ -17,6 +17,13 @@ setup() {
 
   SESSION_FILE="$BATS_TEST_TMPDIR/session-id"
   : >"$SESSION_FILE"
+  # JSON for the pane's `agent`: null is what herdr reports for a pane with
+  # no agent running, including one herdr-nap put to sleep.
+  AGENT_FILE="$BATS_TEST_TMPDIR/agent"
+  printf 'null' >"$AGENT_FILE"
+  export XDG_STATE_HOME="$BATS_TEST_TMPDIR/state"
+  NAPPED="$XDG_STATE_HOME/herdr-nap/napped.tsv"
+  mkdir -p "${NAPPED%/*}"
   STUB_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$STUB_DIR"
   OPEN_LOG="$BATS_TEST_TMPDIR/opened.log"
@@ -24,7 +31,7 @@ setup() {
   cat >"$STUB_DIR/herdr" <<STUB
 #!/bin/bash
 if [ "\$1 \$2" = "pane list" ]; then
-  printf '{"result":{"panes":[{"pane_id":"w1:p1","terminal_title":"\xe2\x9c\xb3 my-session","cwd":"%s","agent_session":{"value":"%s"}}]}}' "$WORK_DIR" "\$(cat "$SESSION_FILE" 2>/dev/null)"
+  printf '{"result":{"panes":[{"pane_id":"w1:p1","terminal_title":"\xe2\x9c\xb3 my-session","cwd":"%s","agent":%s,"agent_session":{"value":"%s"}}]}}' "$WORK_DIR" "\$(cat "$AGENT_FILE")" "\$(cat "$SESSION_FILE" 2>/dev/null)"
 fi
 STUB
   printf '#!/bin/bash\nprintf "%%s\\n" "$1" >>"%s"\n' "$OPEN_LOG" >"$STUB_DIR/open"
@@ -137,4 +144,37 @@ opened() {
   run_keys 'q'
   [[ "$output" == *"no session found for this pane"* ]]
   [[ "$output" != *"SPEAKER_00"* ]]
+}
+
+# nap_record <pane> <kind> <session>: one napped.tsv row as herdr-nap writes it.
+nap_record() {
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$2" "$3" "$WORK_DIR" "-" >>"$NAPPED"
+}
+
+@test "should list a napped pane's own session from herdr-nap's record" {
+  { title_record napped-name; send_record "" "$CLIP_DIR/SPEAKER_00.m4a"; } >"$PROJECT_DIR/9999-nap.jsonl"
+  nap_record w1:p1 claude 9999-nap
+
+  run_keys 'q'
+  [[ "$output" == *"FILES  napped-name"* ]]
+  [[ "$output" == *"1 file(s)"* ]]
+}
+
+@test "should ignore herdr-nap's record when herdr reports an agent in the pane" {
+  { title_record stale; send_record "" "$CLIP_DIR/SPEAKER_00.m4a"; } >"$PROJECT_DIR/9999-nap.jsonl"
+  nap_record w1:p1 claude 9999-nap
+  printf '"claude"' >"$AGENT_FILE"
+
+  # No id yet (claude just started): the title still finds s1, two files.
+  run_keys 'q'
+  [[ "$output" == *"2 file(s)"* ]]
+  [[ "$output" != *"FILES  stale"* ]]
+}
+
+@test "should skip herdr-nap records for agents other than claude" {
+  { title_record grok-thing; send_record "" "$CLIP_DIR/SPEAKER_00.m4a"; } >"$PROJECT_DIR/9999-nap.jsonl"
+  nap_record w1:p1 grok 9999-nap
+
+  run_keys 'q'
+  [[ "$output" == *"2 file(s)"* ]]
 }

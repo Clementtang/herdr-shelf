@@ -54,7 +54,8 @@ setup() {
 
   run python3 "$COLLECT" "$WORK_DIR" wanted
   [ "${lines[0]}" = "#transcript	$PROJECT_DIR/older.jsonl" ]
-  [ "${lines[1]}" = "/clips/mine.m4a	" ]
+  [ "${lines[1]}" = "#title	wanted" ]
+  [ "${lines[2]}" = "/clips/mine.m4a	" ]
 }
 
 @test "should match the last customTitle when a session was renamed mid-file" {
@@ -112,7 +113,8 @@ setup() {
 
   run python3 "$COLLECT" "$WORK_DIR" shared-name aaaa-1111
   [ "${lines[0]}" = "#transcript	$PROJECT_DIR/aaaa-1111.jsonl" ]
-  [ "${lines[1]}" = "/clips/by-id.m4a	" ]
+  [ "${lines[1]}" = "#title	shared-name" ]
+  [ "${lines[2]}" = "/clips/by-id.m4a	" ]
 }
 
 @test "should find the session transcript under another project when the pane cwd has moved" {

@@ -12,9 +12,11 @@
 set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# shellcheck source=scripts/portable.sh
+. "$script_dir/portable.sh"
 herdr_bin="${HERDR_BIN_PATH:-herdr}"
 open_cmd="${SHELF_OPEN_CMD:-$HOME/.local/bin/semantic-open}"
-[ -x "$open_cmd" ] || open_cmd="/usr/bin/open"
+[ -x "$open_cmd" ] || open_cmd="$(default_opener)"
 poll_seconds="${SHELF_POLL_SECONDS:-2}"
 
 # Origin pane: the plugin context names the pane that was focused when the
@@ -253,7 +255,7 @@ open_selected() {
 
 stamp() {
   [ -n "$transcript" ] && [ -f "$transcript" ] || return 0
-  stat -f %m "$transcript" 2>/dev/null || stat -c %Y "$transcript" 2>/dev/null
+  file_mtime "$transcript"
 }
 
 size_self

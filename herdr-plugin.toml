@@ -2,6 +2,7 @@
 # 本機開發：herdr plugin link ~/herdr-shelf
 #
 # 需要的系統工具：jq、python3（herdr 的 manifest 沒有相依欄位，請自行安裝）。
+# Linux 另需 xdg-open（xdg-utils），沒有 SHELF_OPEN_CMD 時用它開檔。
 # 開檔一律交給 SHELF_OPEN_CMD（預設 ~/.local/bin/semantic-open），
 # 要換程式就改那一支，不改這個 plugin。
 
@@ -13,7 +14,9 @@ description = "常駐側欄，列出目前 session 送出的所有檔案，Enter
 platforms = ["macos", "linux"]
 
 # split 而非 overlay：這是常駐面板，overlay 會蓋住 agent 的輸出。
-# pane 的 cwd 是使用者的工作目錄，腳本路徑一定要用 $HERDR_PLUGIN_ROOT。
+# pane 的 cwd 是 plugin 根目錄，不是使用者的工作目錄：使用者的目錄要從
+# herdr pane list 回報的 origin pane cwd 取得（見 shelf.sh 的 load）。
+# 腳本路徑一律寫成 $HERDR_PLUGIN_ROOT，不依賴 cwd。
 [[panes]]
 id = "shelf"
 title = "Files"

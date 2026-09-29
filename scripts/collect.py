@@ -88,10 +88,12 @@ def resolve_transcript(directory, title, session_id=""):
 
     herdr reports the Claude session id of each pane, which names the
     transcript exactly. Without it (older herdr, or a pane herdr has not
-    identified) the pane title is matched against the /rename name, and
-    failing that the most recently written transcript is used: one project
-    directory holds every session ever run in that repo and several are
-    usually live, so recency alone often picks another pane's session.
+    identified) the pane title is matched against the /rename name.
+
+    Neither matching returns None rather than the newest transcript: one
+    project directory holds every session ever run in that repo and several
+    are usually live, so a recency guess shows another session's files as
+    if they were this pane's.
     """
     exact = transcript_for_session(directory, session_id)
     if exact:
@@ -101,7 +103,7 @@ def resolve_transcript(directory, title, session_id=""):
         for transcript in candidates[:40]:
             if custom_title(transcript) == title:
                 return transcript
-    return candidates[0] if candidates else None
+    return None
 
 
 def collect(transcript):

@@ -12,7 +12,7 @@ setup() {
     send_record "second batch" /clips/b.m4a /clips/c.m4a
   } >"$PROJECT_DIR/s1.jsonl"
 
-  run python3 "$COLLECT" "$WORK_DIR" ""
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "#transcript	$PROJECT_DIR/s1.jsonl" ]
   [ "${lines[1]}" = "/clips/c.m4a	second batch" ]
@@ -28,7 +28,7 @@ setup() {
     send_record "" /clips/a.m4a
   } >"$PROJECT_DIR/s1.jsonl"
 
-  run python3 "$COLLECT" "$WORK_DIR" ""
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 2 ]
   [ "${lines[1]}" = "/clips/a.m4a	" ]
@@ -41,7 +41,7 @@ setup() {
     send_record "resent" /clips/a.m4a
   } >"$PROJECT_DIR/s1.jsonl"
 
-  run python3 "$COLLECT" "$WORK_DIR" ""
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
   [ "${lines[1]}" = "/clips/a.m4a	resent" ]
   [ "${lines[2]}" = "/clips/b.m4a	middle" ]
   [ "${#lines[@]}" -eq 3 ]
@@ -73,16 +73,18 @@ setup() {
   [ "${lines[0]}" = "#transcript	$PROJECT_DIR/impostor.jsonl" ]
 }
 
-@test "should fall back to the newest transcript when no title matches" {
+@test "should exit 1 instead of guessing the newest transcript when neither id nor title matches" {
   send_record "" /clips/old.m4a >"$PROJECT_DIR/old.jsonl"
   send_record "" /clips/new.m4a >"$PROJECT_DIR/new.jsonl"
   age "$PROJECT_DIR/old.jsonl" 600
 
   run python3 "$COLLECT" "$WORK_DIR" no-such-title
-  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/new.jsonl" ]
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
 
-  run python3 "$COLLECT" "$WORK_DIR" ""
-  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/new.jsonl" ]
+  run python3 "$COLLECT" "$WORK_DIR" "" no-such-id
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
 }
 
 @test "should exit 1 with no output when the project has no transcripts" {
@@ -98,7 +100,7 @@ setup() {
     send_record "col1	col2" /clips/a.m4a
   } >"$PROJECT_DIR/s1.jsonl"
 
-  run python3 "$COLLECT" "$WORK_DIR" ""
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
   [ "$status" -eq 0 ]
   [ "${lines[1]}" = "/clips/a.m4a	col1 col2" ]
 }
@@ -138,5 +140,6 @@ setup() {
   send_record "" /clips/inside.m4a >"$PROJECT_DIR/ffff-6666.jsonl"
 
   run python3 "$COLLECT" "$WORK_DIR" "" "../../escape/x"
-  [ "${lines[0]}" = "#transcript	$PROJECT_DIR/ffff-6666.jsonl" ]
+  [ "$status" -eq 1 ]
+  [[ "$output" != *outside* ]]
 }

@@ -128,3 +128,13 @@ opened() {
   [[ "$output" == *"1 file(s)"* ]]
   [[ "$output" == *"2 file(s)"* ]]
 }
+
+@test "should say no session was found instead of listing another session's files" {
+  # Neither the id (none reported) nor the title matches: the only
+  # transcript belongs to some other, unnamed session.
+  send_record "" "$CLIP_DIR/SPEAKER_00.m4a" >"$PROJECT_DIR/s1.jsonl"
+
+  run_keys 'q'
+  [[ "$output" == *"no session found for this pane"* ]]
+  [[ "$output" != *"SPEAKER_00"* ]]
+}

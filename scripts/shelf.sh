@@ -216,7 +216,10 @@ draw() {
     i=$((i + 1))
   done
 
-  if [ "${#paths[@]}" -eq 0 ]; then
+  if [ -z "$transcript" ]; then
+    # Said outright: an empty list would read as "this session sent nothing".
+    frame+="${DIM}$(fit_end "no session found for this pane" "$width")${RESET}${CLR_EOL}"$'\n'
+  elif [ "${#paths[@]}" -eq 0 ]; then
     frame+="${DIM}$(fit "nothing delivered yet" "$width")${RESET}${CLR_EOL}"$'\n'
   fi
 

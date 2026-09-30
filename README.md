@@ -28,7 +28,13 @@ herdr plugin install Clementtang/herdr-shelf --yes
 
 herdr 0.9.1 中把 `-y` 放在 repo 前面（`herdr plugin install -y Clementtang/herdr-shelf`）只會印出用法，不會安裝。
 
-在 `~/.config/herdr/config.toml` 綁快捷鍵：
+快捷鍵 `prefix+f` 會自動綁好：plugin 帶有一個 startup hook，下次 herdr 啟動時寫進 `config.toml` 並 reload（安裝預覽會列出這個 startup 指令）。不想等重啟，可以馬上執行：
+
+```sh
+herdr plugin action invoke install-keybind --plugin clementtang.herdr-shelf
+```
+
+它只在兩種情況下不動 `config.toml`：側欄已經綁在任何一個按鍵上（你改過的按鍵會保留），或 `prefix+f` 已經給別的指令用了。後者會跳通知，請手動綁到別的按鍵：
 
 ```toml
 [[keys.command]]
@@ -37,7 +43,7 @@ type = "plugin_action"
 command = "clementtang.herdr-shelf.shelf"
 ```
 
-改完執行 `herdr server reload-config`。
+手動改完執行 `herdr server reload-config`。
 
 本機開發改用 `herdr plugin link ~/herdr-shelf`。改腳本不需要 reload，下次開側欄就會生效。
 
@@ -96,7 +102,8 @@ bats tests/
 
 - `collect.bats`：用假的 HOME 與 .jsonl fixture 驗證檔案抽取、去重與 session 選擇。
 - `shelf.bats`：用假的 herdr 與開檔指令無頭驅動側欄，驗證鍵盤與滑鼠點擊開到正確的檔案。
-- `toggle.bats`：驗證 `prefix+f` 在同一個 tab 已有側欄時會關閉，而不是再開一個。
+- `toggle.bats`：驗證同一個 tab 已有側欄時，`prefix+f` 會把它關閉，不會疊出第二個。
+- `install-keybind.bats`：驗證自動綁快捷鍵只寫一次、不覆蓋使用者改過的按鍵、`prefix+f` 被佔用時不動設定檔。
 - `portable.bats`：驗證 `scripts/portable.sh` 在 macOS（BSD `stat`、`open`）與 Linux（GNU `stat`、`xdg-open`）給出相同結果，另一邊的工具以 PATH 裡的假指令代替。
 
 macOS 與 Linux 都能跑整套測試。
@@ -116,3 +123,7 @@ macOS 與 Linux 都能跑整套測試。
 
 - [herdr-openr](https://github.com/wraithyy/herdr-openr)：同樣讀 Claude 逐字檔，收的是 Edit、Write、Read 碰過的檔案與網址，用 fzf 選單跳進編輯器。session id 的找法是從它學來的。
 - [termscope](https://github.com/iurysza/termscope)：掃描畫面上看得到的檔案與連結，彈出選單開啟。
+
+## 授權
+
+MIT，見 [LICENSE](LICENSE)。

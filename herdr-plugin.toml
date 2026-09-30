@@ -28,3 +28,14 @@ id = "shelf"
 title = "Shelf: 開關檔案側欄"
 contexts = ["workspace"]
 command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/toggle.sh\""]
+
+# 安裝後第一次啟動 herdr 時自動綁 prefix+f，讓 plugin install 成為唯一步驟。
+# 已經綁過（任何按鍵）或 prefix+f 被別的指令佔用時不動 config.toml。
+[[actions]]
+id = "install-keybind"
+title = "Shelf: 在 config.toml 綁定 prefix+f"
+contexts = ["global", "workspace"]
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/install-keybind.sh\""]
+
+[[startup]]
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/install-keybind.sh\""]

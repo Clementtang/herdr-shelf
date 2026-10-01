@@ -145,3 +145,38 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" != *outside* ]]
 }
+
+# send_call <id> <files-json> [error]: a SendUserFile call with a tool id and
+# its tool_result, failed when the third argument is given.
+send_call() {
+  printf '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"%s","name":"SendUserFile","input":{"files":%s,"caption":""}}]}}\n' "$1" "$2"
+  if [ -n "${3:-}" ]; then
+    printf '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"%s","is_error":true,"content":"<tool_use_error>does not exist</tool_use_error>"}]}}\n' "$1"
+  else
+    printf '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"%s","content":"1 file delivered to user."}]}}\n' "$1"
+  fi
+}
+
+@test "should ignore a call whose files arrived as one JSON-encoded string" {
+  {
+    send_call toolu_1 '"[\"/clips/a.m4a\", \"/clips/b.m4a\"]"' error
+    send_call toolu_2 '["/clips/a.m4a", "/clips/b.m4a"]'
+  } >"$PROJECT_DIR/s1.jsonl"
+
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 3 ]
+  [ "${lines[1]}" = "/clips/b.m4a	" ]
+  [ "${lines[2]}" = "/clips/a.m4a	" ]
+}
+
+@test "should leave out files from a call the tool reported as failed" {
+  {
+    send_call toolu_1 '["/clips/kept.m4a"]'
+    send_call toolu_2 '["/clips/missing.m4a"]' error
+  } >"$PROJECT_DIR/s1.jsonl"
+
+  run python3 "$COLLECT" "$WORK_DIR" "" s1
+  [ "${#lines[@]}" -eq 2 ]
+  [ "${lines[1]}" = "/clips/kept.m4a	" ]
+}

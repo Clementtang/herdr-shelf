@@ -107,10 +107,15 @@ def resolve_transcript(directory, title, session_id=""):
 
 
 def collect(transcript):
-    """Return [(path, caption)], newest first, deduped by path."""
-    # dicts keep insertion order, so popping before re-inserting moves a
-    # re-sent path to the newest position.
-    found = {}
+    """Return [(path, caption)], newest first, deduped by path.
+
+    A call counts only if it delivered: `files` must be a list (a model can
+    pass the list JSON-encoded as one string, which the tool rejects and
+    which would otherwise be iterated character by character), and its
+    tool_result must not be an error.
+    """
+    sends = []
+    failed = set()
     with open(transcript, encoding="utf-8", errors="replace") as handle:
         for line in handle:
             try:
@@ -123,17 +128,30 @@ def collect(transcript):
             for block in content:
                 if not isinstance(block, dict):
                     continue
+                if block.get("type") == "tool_result" and block.get("is_error"):
+                    failed.add(block.get("tool_use_id"))
+                    continue
                 if block.get("type") != "tool_use":
                     continue
                 if block.get("name") != "SendUserFile":
                     continue
                 params = block.get("input") or {}
-                caption = params.get("caption") or ""
-                for path in params.get("files") or []:
-                    if not isinstance(path, str):
-                        continue
-                    found.pop(path, None)
-                    found[path] = caption
+                files = params.get("files")
+                if not isinstance(files, list):
+                    continue
+                sends.append((block.get("id"), files, params.get("caption") or ""))
+
+    # dicts keep insertion order, so popping before re-inserting moves a
+    # re-sent path to the newest position.
+    found = {}
+    for call_id, files, caption in sends:
+        if call_id is not None and call_id in failed:
+            continue
+        for path in files:
+            if not isinstance(path, str):
+                continue
+            found.pop(path, None)
+            found[path] = caption
     return list(reversed(found.items()))
 
 

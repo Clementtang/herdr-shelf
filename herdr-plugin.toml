@@ -31,6 +31,7 @@ command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/toggle.sh\""]
 
 # 安裝後第一次啟動 herdr 時自動綁 prefix+f，讓 plugin install 成為唯一步驟。
 # 已經綁過（任何按鍵）或 prefix+f 被別的指令佔用時不動 config.toml。
+# startup 另外會關掉 herdr 重啟後留下的空殼側欄（見 scripts/startup.sh）。
 [[actions]]
 id = "install-keybind"
 title = "Shelf: 在 config.toml 綁定 prefix+f"
@@ -38,4 +39,4 @@ contexts = ["global", "workspace"]
 command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/install-keybind.sh\""]
 
 [[startup]]
-command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/install-keybind.sh\""]
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/scripts/startup.sh\""]

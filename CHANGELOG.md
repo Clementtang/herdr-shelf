@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- herdr 重啟後，側欄變成停在 plugin 根目錄的空 shell：herdr 還原版面時不會重跑 plugin pane 的指令。`prefix+f` 原本只認得正在跑 shelf.sh 的 pane，碰到空殼會在旁邊再開一個。現在以 pane 的 label（`Files`）加上工作目錄辨識空殼：`prefix+f` 會把它關掉，startup hook 在 herdr 啟動時也會一併清掉。
+
 ## [0.2.0] - 2026-10-06
 
 ### Added

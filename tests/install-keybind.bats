@@ -59,7 +59,7 @@ theme = "dark"' ]
   run bash "$INSTALL"
   [ "$status" -eq 0 ]
   [ "$(cat "$HERDR_CONFIG_PATH")" = "$before" ]
-  ! grep -q 'reload-config' "$HERDR_CALLS"
+  ! grep -q 'reload-config' "$HERDR_CALLS" || false
 }
 
 @test "should refuse and notify when prefix+f belongs to another command" {

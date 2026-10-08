@@ -118,6 +118,7 @@ macOS 與 Linux 都能跑整套測試。
 - 取不到 session id 而退回標題比對時，兩個 session 取同一個名字會認錯。
 - 全程使用 macOS 內建的 bash 3.2，因為 herdr 就是用它執行 plugin。
 - 視窗寬度改變後，最多要等一次輪詢（預設 2 秒）才會重畫。
+- herdr 重啟後側欄不會自動恢復：herdr 會還原版面，但 plugin pane 只回來一個空的 shell，側欄原本跟隨哪個 pane 也沒有記錄。startup hook 會在 herdr 啟動時關掉這些空殼，需要時再按 `prefix+f` 開新的；`prefix+f` 碰到空殼也會把它關掉，不會在旁邊再疊一個。
 
 ## 相關專案
 

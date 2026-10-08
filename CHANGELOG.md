@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-08
+
 ### Fixed
 
 - herdr 重啟後，側欄變成停在 plugin 根目錄的空 shell：herdr 還原版面時不會重跑 plugin pane 的指令。`prefix+f` 原本只認得正在跑 shelf.sh 的 pane，碰到空殼會在旁邊再開一個。現在以 pane 的 label（`Files`）加上工作目錄辨識空殼：`prefix+f` 會把它關掉，startup hook 在 herdr 啟動時也會一併清掉。
@@ -49,6 +51,7 @@
 - 開檔交給 `SHELF_OPEN_CMD`（預設 `~/.local/bin/semantic-open`），double fork 加 setsid 脫離 pane 的程序群組，pane 關閉時開出的視窗不會跟著被關。
 - 鍵盤與滑鼠操作（SGR 滑鼠追蹤，按下即開、滾輪捲動），側欄寬度自動調成 tab 的 0.21。
 
-[Unreleased]: https://github.com/Clementtang/herdr-shelf/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Clementtang/herdr-shelf/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Clementtang/herdr-shelf/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Clementtang/herdr-shelf/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Clementtang/herdr-shelf/tree/v0.1.0

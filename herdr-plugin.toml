@@ -8,7 +8,7 @@
 
 id = "clementtang.herdr-shelf"
 name = "Herdr Shelf"
-version = "0.2.0"
+version = "0.2.1"
 min_herdr_version = "0.9.0"
 description = "常駐側欄，列出目前 session 送出的所有檔案，Enter 用自己的路由開啟。"
 platforms = ["macos", "linux"]

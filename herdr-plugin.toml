@@ -10,7 +10,7 @@ id = "clementtang.herdr-shelf"
 name = "Herdr Shelf"
 version = "0.2.1"
 min_herdr_version = "0.9.0"
-description = "常駐側欄，列出目前 session 送出的所有檔案，Enter 用自己的路由開啟。"
+description = "herdr 常駐側欄：列出 Claude Code session 送出的檔案，點一下就開啟。 | A herdr sidebar listing every file a Claude Code session sent you; click to open."
 platforms = ["macos", "linux"]
 
 # split 而非 overlay：這是常駐面板，overlay 會蓋住 agent 的輸出。

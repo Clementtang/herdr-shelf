@@ -28,7 +28,7 @@ herdr plugin install Clementtang/herdr-shelf --yes
 
 herdr 0.9.1 中把 `-y` 放在 repo 前面（`herdr plugin install -y Clementtang/herdr-shelf`）只會印出用法，不會安裝。
 
-快捷鍵 `prefix+f` 會自動綁好：plugin 帶有一個 startup hook，下次 herdr 啟動時寫進 `config.toml` 並 reload（安裝預覽會列出這個 startup 指令）。不想等重啟，可以馬上執行：
+快捷鍵 `prefix+f` 會自動綁好：plugin 帶有一個 startup hook，下次 herdr 啟動時寫進 `config.toml` 並 reload（安裝預覽會列出這個 startup 指令）。同一個 hook 也會關掉 herdr 重啟後留下的空殼側欄（見「已知限制」）。不想等重啟，可以馬上執行：
 
 ```sh
 herdr plugin action invoke install-keybind --plugin clementtang.herdr-shelf
@@ -102,7 +102,7 @@ bats tests/
 
 - `collect.bats`：用假的 HOME 與 .jsonl fixture 驗證檔案抽取、去重與 session 選擇。
 - `shelf.bats`：用假的 herdr 與開檔指令無頭驅動側欄，驗證鍵盤與滑鼠點擊開到正確的檔案。
-- `toggle.bats`：驗證同一個 tab 已有側欄時，`prefix+f` 會把它關閉，不會疊出第二個。
+- `toggle.bats`：驗證同一個 tab 已有側欄時，`prefix+f` 會把它關閉，不會疊出第二個；herdr 重啟後留下的空殼也算側欄，其他 plugin 叫 `Files` 的 pane 不算；startup hook 只清空殼、不動正在跑的側欄。
 - `install-keybind.bats`：驗證自動綁快捷鍵只寫一次、不覆蓋使用者改過的按鍵、`prefix+f` 被佔用時不動設定檔。
 - `portable.bats`：驗證 `scripts/portable.sh` 在 macOS（BSD `stat`、`open`）與 Linux（GNU `stat`、`xdg-open`）給出相同結果，另一邊的工具以 PATH 裡的假指令代替。
 
